@@ -22,6 +22,7 @@ export default async function ProductDetailPage({
 
   return (
     <main>
+      {product.imageUrl === null && <p>商品画像はありません</p>}
       <h1>{product.title}</h1>
 
       <p>{product.description}</p>
