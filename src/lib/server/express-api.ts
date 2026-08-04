@@ -7,12 +7,20 @@ import {
   hasSuccessfulStatus,
   parseJsonBody,
 } from "@/lib/server/http";
+import { isApiErrorResponse } from "@/lib/validators/api-error";
+import type { ApiErrorResponse } from "@/types/api-error";
 
-export type ExpressJsonResponse = {
-  ok: boolean;
-  status: number;
-  body: unknown;
-};
+export type ExpressJsonResponse =
+  | {
+      ok: true;
+      status: number;
+      body: unknown;
+    }
+  | {
+      ok: false;
+      status: number;
+      body: ApiErrorResponse;
+    };
 
 export async function fetchFromExpress(
   path: string,
@@ -39,8 +47,22 @@ export async function fetchFromExpress(
 
   const body = await parseJsonBody(response);
 
+  if (!ok) {
+    if (!isApiErrorResponse(body)) {
+      throw new Error(
+        "Express APIから受け取ったエラー内容が契約に違反しています。",
+      );
+    }
+
+    return {
+      ok: false,
+      status,
+      body,
+    };
+  }
+
   return {
-    ok,
+    ok: true,
     status,
     body,
   };
