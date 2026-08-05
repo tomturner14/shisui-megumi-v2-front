@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { fetchProducts } from "@/lib/server/product-api";
 
-import { products } from "@/data/products";
-
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const products = await fetchProducts();
   if (products.length === 0) {
     return (
       <main>
