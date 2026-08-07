@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { products } from "@/data/products";
+import { fetchProduct } from "@/lib/server/product-api";
 
 type ProductDetailPageProps = {
   params: Promise<{
@@ -14,7 +14,7 @@ export default async function ProductDetailPage({
 }: ProductDetailPageProps) {
   const { handle } = await params;
 
-  const product = products.find((product) => product.handle === handle);
+  const product = await fetchProduct(handle);
 
   if (!product) {
     notFound();
