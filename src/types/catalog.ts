@@ -31,9 +31,18 @@ export type Quote = {
     subtotalYen: number;
   }[];
 };
+export const ORDER_STATUSES = [
+  "REQUESTED",
+  "ACCEPTED",
+  "REJECTED",
+  "CANCELLED",
+  "EXPIRED",
+  "COMPLETED",
+] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type Receipt = {
   orderId: string;
-  status: "REQUESTED";
+  status: OrderStatus;
   totalYen: number;
   currency: "JPY";
 };

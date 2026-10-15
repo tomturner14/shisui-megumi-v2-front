@@ -14,8 +14,9 @@
     "db:seed": "wrangler d1 execute DB --local --file scripts/seed.sql",
     "typecheck": "next typegen && tsc --noEmit",
     "test:unit": "tsx --test tests/cart.test.ts tests/checkout.test.ts tests/e2e-safety.test.ts",
-    "test:d1": "tsx --conditions=react-server --test tests/d1.test.ts",
-    "test:e2e": "playwright test"
+    "test:d1": "tsx --conditions=react-server --test tests/d1.test.ts tests/order-lifecycle.test.ts",
+    "test:e2e": "playwright test",
+    "orders:expire:local": "tsx --conditions=react-server scripts/expire-local-orders.ts"
   },
   "dependencies": {
     "next": "^16.4.0",

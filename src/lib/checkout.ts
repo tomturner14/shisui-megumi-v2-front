@@ -1,4 +1,9 @@
-import type { CartItem, Quote, Receipt } from "@/types/catalog";
+import {
+  ORDER_STATUSES,
+  type CartItem,
+  type Quote,
+  type Receipt,
+} from "@/types/catalog";
 
 export type ConfirmedCheckout = {
   quote: Quote;
@@ -97,7 +102,7 @@ export function isReceipt(value: unknown, quote: Quote): value is Receipt {
   return (
     typeof r.orderId === "string" &&
     /^[0-9a-f-]{36}$/.test(r.orderId) &&
-    r.status === "REQUESTED" &&
+    ORDER_STATUSES.includes(r.status) &&
     r.currency === "JPY" &&
     r.totalYen === quote.totalYen
   );

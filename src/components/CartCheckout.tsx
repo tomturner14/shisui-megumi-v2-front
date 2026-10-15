@@ -160,13 +160,37 @@ export function CartCheckout({ products }: { products: CatalogProduct[] }) {
       setBusy(false);
     }
   }
-  if (receipt)
+  if (receipt) {
+    const ended = ["EXPIRED", "REJECTED", "CANCELLED"].includes(receipt.status);
+    const labels = {
+      REQUESTED: "生産者の承諾待ち",
+      ACCEPTED: "生産者承諾済み",
+      EXPIRED: "承諾期限切れ",
+      REJECTED: "申込みが拒否されました",
+      CANCELLED: "申込みは取り消されています",
+      COMPLETED: "引渡完了として記録されています",
+    };
     return (
       <main>
-        <h1>申込みを受け付けました</h1>
+        <h1>
+          {receipt.status === "REQUESTED"
+            ? "申込みを受け付けました"
+            : "申込みの現在の状態"}
+        </h1>
         <section className={styles.panel}>
-          <h2>まだ購入確定ではありません</h2>
-          <p>状態：REQUESTED（生産者の承諾待ち）</p>
+          <h2>
+            {receipt.status === "REQUESTED"
+              ? "まだ購入確定ではありません"
+              : labels[receipt.status]}
+          </h2>
+          <p>
+            状態：{receipt.status}（{labels[receipt.status]}）
+          </p>
+          {ended && (
+            <p>
+              この申込みは終了しています。同じ送信キーで再開・再確保は行いません。購入し直す場合は、商品一覧から最新価格・在庫を再確認し、新しい申込みを作ってください。
+            </p>
+          )}
           <p>受付番号：{receipt.orderId}</p>
           <p>税込商品合計：{receipt.totalYen.toLocaleString("ja-JP")}円</p>
           <p>
@@ -176,6 +200,7 @@ export function CartCheckout({ products }: { products: CatalogProduct[] }) {
         <Link href="/products">商品一覧へ戻る</Link>
       </main>
     );
+  }
   if (!ready)
     return (
       <main>

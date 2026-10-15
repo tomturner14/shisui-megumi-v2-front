@@ -2,7 +2,7 @@ name: Local verification
 on:
   pull_request:
   push:
-    branches: [codex/local-d1-pickup]
+    branches: [codex/local-d1-pickup, codex/order-lifecycle]
 permissions:
   contents: read
 concurrency:
