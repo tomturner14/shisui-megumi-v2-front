@@ -1,0 +1,40 @@
+.panel {
+  background: #e8f2eb;
+  padding: 16px;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.item {
+  background: #fff;
+  border: 1px solid #dde4db;
+  border-radius: 14px;
+  padding: 16px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.total {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.error {
+  color: #8e301e;
+}
+.form {
+  display: grid;
+  gap: 18px;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}

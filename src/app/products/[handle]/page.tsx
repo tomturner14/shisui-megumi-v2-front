@@ -1,44 +1,39 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
-import { fetchProduct } from "@/lib/server/product-api";
-
+import { connection } from "next/server";
 import Image from "next/image";
-
-type ProductDetailPageProps = {
-  params: Promise<{
-    handle: string;
-  }>;
-};
-
+import { getProducts } from "@/lib/server/catalog";
+import { AddToCart } from "@/components/AddToCart";
 export default async function ProductDetailPage({
   params,
-}: ProductDetailPageProps) {
+}: {
+  params: Promise<{ handle: string }>;
+}) {
+  await connection();
   const { handle } = await params;
-
-  const product = await fetchProduct(handle);
-
-  if (!product) {
-    notFound();
-  }
-
+  const [product] = await getProducts(handle);
+  if (!product) notFound();
   return (
     <main>
-      {product.imageUrl === null ? (
-        <p>商品画像はありません</p>
-      ) : (
+      <p>
+        <Link href="/products">商品一覧へ戻る</Link>
+      </p>
+      {product.imageUrl ? (
         <Image
           src={product.imageUrl}
           alt={product.title}
-          width={500}
-          height={500}
+          width={342}
+          height={240}
+          unoptimized
         />
+      ) : (
+        <p>商品写真は準備中（架空の商品）</p>
       )}
       <h1>{product.title}</h1>
+      <p>売主：{product.sellerName}</p>
       <p>{product.description}</p>
-      <p>{product.priceYen.toLocaleString("ja-JP")}円</p>
-      <p>{product.availableForSale ? "販売中" : "売り切れ"}</p>
-      <Link href="/products">商品一覧へ戻る</Link>
+      <p>{product.pickupConditions}</p>
+      <AddToCart product={product} />
     </main>
   );
 }

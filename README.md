@@ -1,34 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 酒々井の恵 — ローカル購入申込み検証
 
-## Getting Started
+既存のNext.js App Routerを使い、架空の野菜・米をD1から表示し、同じ生産者の複数SKUを現地受取・現金払いで申し込むアプリです。受付状態は `REQUESTED`。生産者承諾・実販売・発送・オンライン決済は行いません。
 
-First, run the development server:
+## 起動
+
+Node.js 24で検証済み。リポジトリのルートで実行してください。Cloudflareアカウント・APIトークン・Express URLは不要です。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+npm run db:migrate
+npm run db:seed
+npm run dev -- --hostname 127.0.0.1
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[商品一覧](http://127.0.0.1:3000/products)から操作します。架空の氏名・連絡先（例：`test@example.invalid`）を使ってください。通常のNext.jsビルドも可能です。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm run start -- --hostname 127.0.0.1
+```
 
-## Learn More
+vinext / Workersローカルプレビュー：
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev:vinext
+# または、開発サーバーを終了してから
+npm run build:vinext
+npm run start:vinext
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+[vinextの商品一覧](http://127.0.0.1:3001/products)。`start:vinext` はWranglerの `--local` を明示しています。外部に公開するトンネル・デプロイは実施していません。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`wrangler.jsonc` のDB IDはローカル専用の固定ダミーIDで、実在するリモートDBを指定していません。`remote: false`、`remoteBindings: false`。migration・seed・起動はリモート操作をしません。デプロイスクリプトはありません。
 
-## Deploy on Vercel
+Wranglerの既定保存先は `.wrangler/state/v3`。通常Next.jsの `getPlatformProxy()` とvinextが同じローカルD1を参照します。CLIの `--persist-to` は **v3を付けない親ディレクトリ**、`getPlatformProxy()` の `persist.path` は **v3を含むディレクトリ**です。seedの再実行は既存注文の在庫をリセットしません。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+クラウド環境でホームディレクトリへのログ書き込みが制限される場合は `XDG_CONFIG_HOME=/tmp/shisui-config WRANGLER_SEND_METRICS=false` をコマンドの前に付けてください。npmキャッシュ制限時は `npm_config_cache=/tmp/shisui-npm` を使えます。ローカル待受権限も必要です。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 自動検証
+
+```bash
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run test:d1
+npm run test:e2e
+npm run build
+E2E_RUNTIME=next-production npm run test:e2e
+npm run build:vinext
+E2E_RUNTIME=vinext npm run test:e2e
+```
+
+**ビルド・typecheck・両開発サーバーは順番に実行してください。** vinext 1.2.0はNext.jsと同じ `.next/types/routes.d.ts` と `next-env.d.ts` を生成します。同時ビルドで生成型が競合するため、両方を並列起動しません。`typecheck` は先に `next typegen` でNext.js用の型を再生成します。
+
+ブラウザテストは `/usr/bin/chromium` があれば利用します。他の環境では `npx playwright install chromium`、または `CHROMIUM_PATH` で実行ファイルを指定してください。ブラウザ・HTTP APIテストは本物のローカルD1に接続します。
+
+- `test:d1`：一時ディレクトリにWranglerの `--local` migration・seedを実行。D1 bindingの `batch()` を検証し、終了時にテストDBのみ削除します。SQLiteだけの代替テストではありません。
+- `test:e2e`：起動前に専用 `.wrangler/e2e-state` を初期化し、11テストを実行。通常開発用 `.wrangler/state` は変更しません。Next.js開発・本番起動・ビルド済みvinextで同じ試験を実行できます。
+- `E2E_BASE_URL`：`http://localhost`、`http://127.0.0.1`、`http://[::1]` のoriginだけを実行時に許可します。ユーザー情報・パス・query・fragment・HTTPS・公開ホストは拒否。絶対API URLも同じoriginに限定し、リダイレクトを追いません。既存サーバーを使う場合は、専用 `.wrangler/e2e-state` に接続したローカルサーバーを指定してください。初期化・起動は省略します。
+- 完成画面のスクリーンショット：`test-results/products-mobile.png`、`confirm-mobile.png`、`receipt-mobile.png`。Gitには含めません。
+
+設計・実施結果・残る制約は [検証記録](docs/LOCAL_D1_VALIDATION.md) を参照してください。
+
+## PR #1 レビュー対応
+
+最終確認時の明細を固定し、別タブでカートが変わった場合は再確認まで送信を停止します。送信結果不明時は修正・新キーを禁止し、同じ内容・キーで受付結果を確認します。キーと公開見積だけをsessionStorageに保存し、氏名・連絡先は保存しません。再読み込み後は元の氏名・連絡先を再入力します。タブ終了・保存情報消去・別端末の復旧は未対応です。
+
+GitHub Actionsの `Local verification` はlint・型・単体・実ローカルD1・両ビルド・Next.js/WorkerのE2Eを自動実行します。秘密情報・本番DB・デプロイは使用しません。在庫期限/解放、不正申込み対策は引き続き公開前必須です。[レビュー対応と次の実装単位](docs/PR1_REVIEW_RESPONSE.md)を参照してください。

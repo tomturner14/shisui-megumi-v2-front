@@ -1,0 +1,44 @@
+name: Local verification
+on:
+  pull_request:
+  push:
+    branches: [codex/local-d1-pickup]
+permissions:
+  contents: read
+concurrency:
+  group: local-verification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      WRANGLER_SEND_METRICS: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:d1
+      - name: Install local test browser
+        run: npx playwright install --with-deps chromium
+      # Next.js and vinext share generated route types; keep their builds sequential.
+      - run: npm run build
+      - name: Next.js production browser and API tests against local D1
+        run: npm run test:e2e
+        env:
+          E2E_RUNTIME: next-production
+      - run: npm run build:vinext
+      - name: Built Worker browser and API tests against local D1
+        run: npm run test:e2e
+        env:
+          E2E_RUNTIME: vinext
