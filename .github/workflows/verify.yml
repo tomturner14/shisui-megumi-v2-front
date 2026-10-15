@@ -1,16 +1,17 @@
 name: Local verification
 on:
   pull_request:
+    # edited includes a change of base branch during the manual PR integration.
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
-    branches:
-      [codex/local-d1-pickup, codex/order-lifecycle, codex/operator-admin]
+    branches: [main]
 permissions:
   contents: read
 concurrency:
-  group: local-verification-${{ github.workflow }}-${{ github.ref }}
+  group: local-verification-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  verify:
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -32,27 +33,60 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:auth
       - run: npm run test:unit
-      - run: npm run test:d1
+      - name: Real local D1 regression tests (two clean runs)
+        run: |
+          npm run test:d1
+          npm run test:d1
+  browser:
+    # Separate runners own separate test databases; a Next failure must not skip
+    # the Worker suite. Builds never share generated .next files across runners.
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [next-production, vinext]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      WRANGLER_SEND_METRICS: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+      E2E_RUNTIME: ${{ matrix.runtime }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
       - name: Install local test browser
         run: npx playwright install --with-deps chromium
-      # Next.js and vinext share generated route types; keep their builds sequential.
-      - run: npm run build
-      - name: Next.js production browser and API tests against local D1
-        run: npm run test:e2e
+      - name: Build Next.js
+        if: matrix.runtime == 'next-production'
+        run: npm run build
+      - name: Build Worker
+        if: matrix.runtime == 'vinext'
+        run: npm run build:vinext
+      - name: Signed browser and API tests (two independently reset local databases)
         env:
-          E2E_RUNTIME: next-production
           E2E_ADMIN_AUTH: "1"
-      - name: Missing auth configuration denies admin access (Next.js)
+        run: |
+          npm run test:e2e
+          npm run test:e2e
+      - name: Missing auth configuration denies admin access
+        env:
+          E2E_NORMAL_ENTRY: "1"
         run: npm run test:e2e -- tests/browser/admin.spec.ts
+  verify:
+    # Stable required-check name for a future owner-configured main rule.
+    # An unsuccessful/skipped dependency must not turn this gate green.
+    if: always()
+    needs: [checks, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every verification job to succeed
         env:
-          E2E_RUNTIME: next-production
-      - run: npm run build:vinext
-      - name: Built Worker browser and API tests against local D1
-        run: npm run test:e2e
-        env:
-          E2E_RUNTIME: vinext
-          E2E_ADMIN_AUTH: "1"
-      - name: Missing auth configuration denies admin access (Worker)
-        run: npm run test:e2e -- tests/browser/admin.spec.ts
-        env:
-          E2E_RUNTIME: vinext
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: test "$CHECKS_RESULT" = success && test "$BROWSER_RESULT" = success

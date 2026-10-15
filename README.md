@@ -33,7 +33,7 @@ npm run start:vinext
 
 `wrangler.jsonc` のDB IDはローカル専用の固定ダミーIDで、実在するリモートDBを指定していません。`remote: false`、`remoteBindings: false`。migration・seed・起動はリモート操作をしません。デプロイスクリプトはありません。
 
-Wranglerの既定保存先は `.wrangler/state/v3`。通常Next.jsの `getPlatformProxy()` とvinextが同じローカルD1を参照します。CLIの `--persist-to` は **v3を付けない親ディレクトリ**、`getPlatformProxy()` の `persist.path` は **v3を含むディレクトリ**です。seedの再実行は既存注文の在庫をリセットしません。
+Wranglerの既定保存先は `.wrangler/state/v3`。通常Next.jsの `getPlatformProxy()` とvinextが同じローカルD1を参照します。CLIの `--persist-to` は **v3を付けない親ディレクトリ**、`getPlatformProxy()` の `persist.path` は **v3を含むディレクトリ**です。seedの再実行は既存注文の在庫をリセットしません。同じ保存先を使うNext.jsとvinextを同時起動せず、migration/seedはアプリを停止してから行ってください。
 
 クラウド環境でホームディレクトリへのログ書き込みが制限される場合は `XDG_CONFIG_HOME=/tmp/shisui-config WRANGLER_SEND_METRICS=false` をコマンドの前に付けてください。npmキャッシュ制限時は `npm_config_cache=/tmp/shisui-npm` を使えます。ローカル待受権限も必要です。
 
@@ -56,8 +56,8 @@ E2E_RUNTIME=vinext npm run test:e2e
 ブラウザテストは `/usr/bin/chromium` があれば利用します。他の環境では `npx playwright install chromium`、または `CHROMIUM_PATH` で実行ファイルを指定してください。ブラウザ・HTTP APIテストは本物のローカルD1に接続します。
 
 - `test:d1`：一時ディレクトリにWranglerの `--local` migration・seedを実行。D1 bindingの `batch()` を検証し、終了時にテストDBのみ削除します。SQLiteだけの代替テストではありません。
-- `test:e2e`：起動前に専用 `.wrangler/e2e-state` を初期化し、16テストを実行。通常開発用 `.wrangler/state` は変更しません。Next.js開発・本番起動・ビルド済みvinextで同じ試験を実行できます。
-- `E2E_BASE_URL`：`http://localhost`、`http://127.0.0.1`、`http://[::1]` のoriginだけを実行時に許可します。ユーザー情報・パス・query・fragment・HTTPS・公開ホストは拒否。絶対API URLも同じoriginに限定し、リダイレクトを追いません。既存サーバーを使う場合は、専用 `.wrangler/e2e-state` に接続したローカルサーバーを指定してください。初期化・起動は省略します。
+- `test:e2e`：起動前に専用 `.wrangler/e2e-state` を初期化し、購入・認証・管理・画面・DB所有者競合のテストを実行。通常開発用 `.wrangler/state` は変更しません。Next.js開発・本番起動・ビルド済みvinextで同じ試験を実行できます。
+- `E2E_BASE_URL`：`http://localhost`、`http://127.0.0.1`、`http://[::1]` のoriginだけを実行時に許可します。ユーザー情報・パス・query・fragment・HTTPS・公開ホストは拒否。絶対API URLも同じoriginに限定し、リダイレクトを追いません。既存サーバー指定では初期化・起動を省略します。ただし直接D1検査を含む全E2Eは自動起動する専用サーバーが必須です（別サーバーへSQLを送らず拒否）。通常entryの検査は `E2E_NORMAL_ENTRY=1` で実行します。
 - 完成画面のスクリーンショット：`test-results/products-mobile.png`、`confirm-mobile.png`、`receipt-mobile.png`。Gitには含めません。
 
 設計・実施結果・残る制約は [検証記録](docs/LOCAL_D1_VALIDATION.md) を参照してください。
@@ -83,3 +83,5 @@ npm run orders:expire:local
 
 画面の実物確認：[19枚の公開用スクリーンショット](docs/visual-review/README.md)。
 PR #1〜#3の依存関係・UI評価・将来の順次統合手順：[docs/PR_STACK_READINESS.md](docs/PR_STACK_READINESS.md)。現在は全PRをDraftのまま維持し、mainへのマージや本番公開は行っていません。
+
+CIのD1接続競合の原因・反復検証・main用設定・統合前ゲート：[CI安定化記録](docs/CI_STABILITY.md)。

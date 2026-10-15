@@ -63,10 +63,10 @@ npm run test:auth
 npm run test:d1
 npm run build
 E2E_RUNTIME=next-production E2E_ADMIN_AUTH=1 npm run test:e2e
-E2E_RUNTIME=next-production npm run test:e2e -- tests/browser/admin.spec.ts
+E2E_RUNTIME=next-production E2E_NORMAL_ENTRY=1 npm run test:e2e -- tests/browser/admin.spec.ts
 npm run build:vinext
 E2E_RUNTIME=vinext E2E_ADMIN_AUTH=1 npm run test:e2e
-E2E_RUNTIME=vinext npm run test:e2e -- tests/browser/admin.spec.ts
+E2E_RUNTIME=vinext E2E_NORMAL_ENTRY=1 npm run test:e2e -- tests/browser/admin.spec.ts
 ```
 
 Nextとvinextは生成型を共有するため順番に実行する。クラウド環境でWranglerのユーザー設定フォルダが書込不可なら `XDG_CONFIG_HOME=/tmp/shisui-config WRANGLER_SEND_METRICS=false` を付ける。Chromium未導入なら `npx playwright install --with-deps chromium`（ローカル/CIのみ）。
@@ -106,3 +106,8 @@ PR #2の独立レビューで指摘された、期限処理の失敗注文によ
 ## 実画面とstackの統合準備
 
 2026-10-15の追加確認：[購入者・運営者の実画面19枚](./visual-review/README.md)、[Figma比較・再検証・順次統合手順](./PR_STACK_READINESS.md)。画像は架空fixtureだけを実ブラウザで取得し、安全性を確認してWebPで共有しています。過去の実行記録と今回の再実行を区別してください。管理操作の再読み込み後の結果確認UXなど、独立レビューで挙がった公開前ゲートは維持しています。
+
+
+## 追加監査後のD1テスト接続
+
+ブラウザのSQL検査は同じSQLiteを別workerdから開かず、テスト専用preload/生成entryを通してアプリ所有のD1を使う。`E2E_NORMAL_ENTRY=1` の設定なし検証ではこれらも使わず、通常entryのSQL経路404を確認する。通常src/entryはテスト用dispatcherをimportしない。詳細、反復結果、main用CIと統合前の注意は [CI_STABILITY.md](./CI_STABILITY.md) を参照。複数のPlaywrightやNext/Workerを同じ保存先・ポート・test-resultsで同時起動しない。

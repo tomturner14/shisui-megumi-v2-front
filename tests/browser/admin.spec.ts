@@ -275,3 +275,13 @@ test("uncertain admin response reuses operation key; double delivery records onl
   expect(denied!.status()).toBe(401);
   await expect(page.getByText(buyer.contact, { exact: true })).toHaveCount(0);
 });
+
+// A real normal build must never expose the generated SQL test dispatcher.
+test("normal entry has no test SQL route", async ({ request }) => {
+  test.skip(process.env.E2E_NORMAL_ENTRY !== "1", "Checked with the untouched normal entry");
+  const response = await request.post("/__test/d1", {
+    data: { method: "all", sql: "SELECT * FROM orders" },
+  });
+  expect(response.status()).toBe(404);
+  expect(await response.text()).not.toContain(buyer.contact);
+});

@@ -2,7 +2,13 @@
 
 2026-10-15（JST）。[依頼コメント](https://github.com/tomturner14/shisui-megumi-v2-front/pull/3#issuecomment-6193295597)への対応。**全3件のDraft・base・既存ブランチを維持し、マージ・Ready for review化・本番公開は行っていない。**
 
-## 判断
+## 2026-10-15 追加監査による訂正
+
+[最終マージ前の独立監査](https://github.com/tomturner14/shisui-megumi-v2-front/pull/3#issuecomment-6194509020)で、`41e5465` の[PR実行38747021723](https://github.com/tomturner14/shisui-megumi-v2-front/actions/runs/38747021723)は成功した一方、[push実行38747013557](https://github.com/tomturner14/shisui-megumi-v2-front/actions/runs/38747013557)は `SQLITE_BUSY` で失敗していたと確認した。以前のPR実行だけを見た成功報告は全チェックの確認として不十分だった。以下の画面/機能評価は過去の実測記録であり、この失敗を打ち消さない。
+
+修正の原因・再現手順・反復テストと最新CIは [CI安定化記録](./CI_STABILITY.md) とPR #3のSHA付き対応コメントを参照。**最新HEADの全イベント/全jobの成功確認、外部自動デプロイの停止確認、人間の画面承認・最終レビューが揃うまで統合は保留する。** GitHub上で手動管理している依存PRであり、GitHubネイティブのStacked PR一括マージ機能を確認したものではない。
+
+## 判断（追加監査前の評価）
 
 現時点のコードは、**非公開のローカル検証版として順次統合の判断に進める**。競合なしのローカル模擬統合と機能検証を実施し、[19枚の実画面](./visual-review/README.md)を共有した。ただし、実販売・本番公開の準備完了ではない。人間の画面承認と各段階の最新CI確認を経て、ユーザーが別途承認した場合だけ、下記の順次統合を行う。
 
@@ -81,17 +87,18 @@ Figmaの発送・振込・送料見積、および `/checkout*` 独立画面に�
 | squash merge                         | 元のコミットがmainの祖先にならず、後続PRに前段差分が再表示されるリスク。単にbaseだけを変えない。採用するなら明示的な再構成・差分照合・再レビューが必要 |
 | rebase and merge                     | GitHubでSHAが変わるため、このstackでは後続の再構成が必要になり得る。今回の最小リスク案にはしない                                                       |
 
-GitHub API上はmerge commit/squash/rebaseが許可されている。**branch protection/ruleset・自動ブランチ削除設定・最新レビュー要件はこのタスクで確定していない**。設定変更は行っていない。linear history必須などでmerge commitできなければ、勝手にsquash/rebaseせず計画を再承認する。
+GitHub API上はmerge commit/squash/rebaseが許可されている。追加監査時点のmainは `protected=false`、rulesetは0件、required checksは未設定。これらの設定は変更していない。所有者が別作業で、PR必須、`Local verification / verify` 相当の実際のチェック名を確認したrequired check、force push禁止、適切なレビュー要件を設定することを推奨する。今回のmerge commit方式と両立しないlinear history必須は推奨しない。自動ブランチ削除/最新レビュー条件は最終実行時に再確認する。
 
 承認後の操作者向け手順：
 
-1. 人間が[画像一覧](./visual-review/README.md)とP1/P2、ローカル検証版という範囲を確認。全PRのHEAD・base・最新CI・レビューとmainの更新有無を再取得する。変更があれば模擬統合をやり直す。
-2. 自動ブランチ削除/保護ルールを確認し、後続PRがbase参照しているブランチを削除しない手順を合意する。必要な設定変更は承認された操作者が別途実施。今は切替も削除もしていない。
-3. 明示承認された#1だけをReadyにして最終レビューし、**merge commit**でmainへ取り込む。`codex/local-d1-pickup` は保持。
-4. #2のbaseを `codex/local-d1-pickup` → `main` に変更する。#1の差分が含まれず、0002/ライフサイクル等の固有差分だけかFiles changedを再確認。レビューのoutdated化と新しいmerge対象のCIも再確認する。必要ならmainを専用branchへ通常mergeして再テストし、force pushしない。
-5. 承認後に#2をmerge commitでmainへ。`codex/order-lifecycle` は#3のbaseなので保持。
-6. #3のbaseを `codex/order-lifecycle` → `main` に変更。#1/#2の差分が重複しないこと、0003/管理認証/UI/今回の証拠だけであることを照合し、最新CI・画像・レビューを確認してから、別途承認されたmerge commitを実行。
-7. 全3件の統合後にmainを再取得し、全機能・migration・認証設定なし拒否・CIを再確認。ブランチ削除はbase参照がなくなったことを確認してから別途判断する。コード統合とCloudflare公開を連動させない。
+1. **統合前の停止条件：所有者がCloudflare管理画面でWorkers BuildsのGit連携、production branch、main更新時の自動ビルド/デプロイを確認し、意図しない公開が起きない状態と証拠を用意する。** GitHub workflowにdeployがないこと、`workers_dev=false` / `preview_urls=false` だけでは外部Git連携を否定できない。このタスクではCloudflareへ接続・設定変更していない。
+2. 人間が[画像一覧](./visual-review/README.md)とP1/P2、ローカル検証版という範囲を確認。全PRのHEAD・base・最新CI・レビューとmainの更新有無を再取得する。変更があれば模擬統合をやり直す。
+3. 自動ブランチ削除/保護ルールを確認し、後続PRがbase参照しているブランチを削除しない手順を合意する。必要な設定変更は承認された操作者が別途実施。今は切替も削除もしていない。
+4. 明示承認された#1だけをReadyにして最終レビューし、**merge commit**でmainへ取り込む。`codex/local-d1-pickup` は保持。
+5. #2のbaseを `codex/local-d1-pickup` → `main` に変更する。#1の差分が含まれず、0002/ライフサイクル等の固有差分だけかFiles changedを再確認。レビューのoutdated化と新しいmerge対象のCIも再確認する。必要ならmainを専用branchへ通常mergeして再テストし、force pushしない。
+6. 承認後に#2をmerge commitでmainへ。`codex/order-lifecycle` は#3のbaseなので保持。
+7. #3のbaseを `codex/order-lifecycle` → `main` に変更。#1/#2の差分が重複しないこと、0003/管理認証/UI/今回の証拠だけであることを照合し、最新CI・画像・レビューを確認してから、別途承認されたmerge commitを実行。
+8. 全3件の統合後にmainを再取得し、全機能・migration・認証設定なし拒否・CIを再確認。ブランチ削除はbase参照がなくなったことを確認してから別途判断する。コード統合とCloudflare公開を連動させない。
 
 GitHub仕様の参照：[merge方式](https://docs.github.com/en/pull-requests/reference/pull-request-merges)、[base変更とレビューへの影響](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-base-branch-of-a-pull-request)、[自動削除設定](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches)。GitHubが自動でbaseを調整するという想定だけに頼らず、各段階を目視確認する。
 
@@ -104,4 +111,4 @@ GitHub仕様の参照：[merge方式](https://docs.github.com/en/pull-requests/r
 - 実販売の受取/返品/取消条件、売主の了承、特商法等の表示、個人情報の保持/共有/削除方針・バックアップ復旧。
 - Workers CPU/無料枠の実測・D1容量/読書込の運用見積。ローカル成功から適合済みとは判断しない。
 
-**次に必要な最小判断：画像とP1/P2を確認した上で、「本番公開せず、検証版コードを#1からmerge commitで順次統合する最終レビューへ進めるか」を承認すること。今すぐのmergeや実環境設定を求めるものではない。**
+**追加監査後は上記の統合保留条件が優先。次に必要な最小判断：画像とP1/P2を確認した上で、「本番公開せず、検証版コードを#1からmerge commitで順次統合する最終レビューへ進めるか」を承認すること。今すぐのmergeや実環境設定を求めるものではない。**
