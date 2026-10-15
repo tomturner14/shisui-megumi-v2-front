@@ -250,6 +250,11 @@ before(async () => {
     join(path, "migrations/0002_order_lifecycle.sql"),
   );
   cli(["d1", "migrations", "apply", "DB"]);
+  await copyFile(
+    "migrations/0003_operator_audit.sql",
+    join(path, "migrations/0003_operator_audit.sql"),
+  );
+  cli(["d1", "migrations", "apply", "DB"]);
   proxy = await getPlatformProxy({
     configPath: config,
     persist: { path: join(path, "v3") },

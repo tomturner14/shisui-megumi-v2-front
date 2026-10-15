@@ -2,7 +2,8 @@ name: Local verification
 on:
   pull_request:
   push:
-    branches: [codex/local-d1-pickup, codex/order-lifecycle]
+    branches:
+      [codex/local-d1-pickup, codex/order-lifecycle, codex/operator-admin]
 permissions:
   contents: read
 concurrency:
@@ -27,6 +28,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run test:auth
       - run: npm run test:unit
       - run: npm run test:d1
       - name: Install local test browser
@@ -37,8 +39,18 @@ jobs:
         run: npm run test:e2e
         env:
           E2E_RUNTIME: next-production
+          E2E_ADMIN_AUTH: "1"
+      - name: Missing auth configuration denies admin access (Next.js)
+        run: npm run test:e2e -- tests/browser/admin.spec.ts
+        env:
+          E2E_RUNTIME: next-production
       - run: npm run build:vinext
       - name: Built Worker browser and API tests against local D1
         run: npm run test:e2e
+        env:
+          E2E_RUNTIME: vinext
+          E2E_ADMIN_AUTH: "1"
+      - name: Missing auth configuration denies admin access (Worker)
+        run: npm run test:e2e -- tests/browser/admin.spec.ts
         env:
           E2E_RUNTIME: vinext

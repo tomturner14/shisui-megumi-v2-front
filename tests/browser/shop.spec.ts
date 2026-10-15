@@ -190,7 +190,9 @@ test("HTTP API validation, idempotency, price and shipping safeguards, privacy",
     "/api/admin/orders",
   ]) {
     const r = await request.get(route);
-    expect([404, 405]).toContain(r.status());
+    expect(
+      route.startsWith("/api/admin/") ? [401, 403, 503] : [404, 405],
+    ).toContain(r.status());
     expect(await r.text()).not.toContain("api@example.invalid");
   }
   const products = await request.get("/api/products");

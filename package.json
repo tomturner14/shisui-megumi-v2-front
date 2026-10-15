@@ -14,11 +14,13 @@
     "db:seed": "wrangler d1 execute DB --local --file scripts/seed.sql",
     "typecheck": "next typegen && tsc --noEmit",
     "test:unit": "tsx --test tests/cart.test.ts tests/checkout.test.ts tests/e2e-safety.test.ts",
-    "test:d1": "tsx --conditions=react-server --test tests/d1.test.ts tests/order-lifecycle.test.ts",
+    "test:d1": "tsx --conditions=react-server --test tests/d1.test.ts tests/order-lifecycle.test.ts tests/admin-d1.test.ts",
     "test:e2e": "playwright test",
-    "orders:expire:local": "tsx --conditions=react-server scripts/expire-local-orders.ts"
+    "orders:expire:local": "tsx --conditions=react-server scripts/expire-local-orders.ts",
+    "test:auth": "tsx --conditions=react-server --test tests/admin-auth.test.ts"
   },
   "dependencies": {
+    "jose": "^6.2.12",
     "next": "^16.4.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

@@ -8,6 +8,10 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@/lib/server/admin-config": path.resolve(
+        import.meta.dirname,
+        "src/lib/server/admin-config-cloudflare.ts",
+      ),
       "@/lib/server/db": path.resolve(
         import.meta.dirname,
         "src/lib/server/db-cloudflare.ts",

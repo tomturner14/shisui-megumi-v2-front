@@ -17,6 +17,7 @@ export type TransitionCommand = {
   toStatus: TransitionStatus;
   operationKey: string;
   actorCategory: ActorCategory;
+  actorId?: string;
   nowMs?: number;
 };
 export type TransitionResult = {
@@ -31,6 +32,7 @@ type EventRow = {
   to_status: TransitionStatus;
   actor_category: ActorCategory;
   status: OrderStatus;
+  actor_id: string | null;
 };
 const operation = {
   ACCEPTED: "ACCEPT",
@@ -39,7 +41,7 @@ const operation = {
   EXPIRED: "EXPIRE",
 } as const;
 // Internal primitive ONLY: caller must be a trusted operator service or expiry job.
-// No HTTP handler exposes this function; actorCategory is audit classification, not authentication.
+// HTTP callers must authenticate/authorize first and supply the verified subject; category alone is not authentication.
 export async function transitionOrder(
   db: D1Database,
   command: TransitionCommand,
@@ -56,6 +58,9 @@ export async function transitionOrder(
     (toStatus === "EXPIRED"
       ? actorCategory !== "SYSTEM"
       : actorCategory !== "OPERATOR") ||
+    (command.actorId !== undefined &&
+      (actorCategory !== "OPERATOR" ||
+        !/^[a-zA-Z0-9:_-]{1,200}$/.test(command.actorId))) ||
     !Number.isSafeInteger(nowMs) ||
     nowMs < 0
   )
@@ -63,7 +68,7 @@ export async function transitionOrder(
   const existing = () =>
     db
       .prepare(
-        `SELECT e.id,e.order_id,e.to_status,e.actor_category,o.status
+        `SELECT e.id,e.order_id,e.to_status,e.actor_category,e.actor_id,o.status
  FROM order_events e JOIN orders o ON o.id=e.order_id WHERE e.operation_key=?`,
       )
       .bind(operationKey)
@@ -72,7 +77,8 @@ export async function transitionOrder(
     if (
       e.order_id !== orderId ||
       e.to_status !== toStatus ||
-      e.actor_category !== actorCategory
+      e.actor_category !== actorCategory ||
+      e.actor_id !== (command.actorId ?? null)
     )
       throw new LifecycleError("OPERATION_CONFLICT");
     return { orderId, status: e.status, eventId: e.id, applied: false };
@@ -84,8 +90,8 @@ export async function transitionOrder(
     const result = await db.batch<{ status: OrderStatus }>([
       db
         .prepare(
-          `INSERT INTO order_events(id,operation_key,order_id,operation,actor_category,from_status,to_status,occurred_at_ms)
-    VALUES(?,?,?,?,?,COALESCE((SELECT status FROM orders WHERE id=?),'REQUESTED'),?,?)`,
+          `INSERT INTO order_events(id,operation_key,order_id,operation,actor_category,from_status,to_status,occurred_at_ms,actor_id)
+    VALUES(?,?,?,?,?,COALESCE((SELECT status FROM orders WHERE id=?),'REQUESTED'),?,?,?)`,
         )
         .bind(
           id,
@@ -96,6 +102,7 @@ export async function transitionOrder(
           orderId,
           toStatus,
           nowMs,
+          command.actorId ?? null,
         ),
       db.prepare("SELECT status FROM orders WHERE id=?").bind(orderId),
     ]);
