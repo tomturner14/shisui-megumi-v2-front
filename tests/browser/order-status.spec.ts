@@ -177,7 +177,9 @@ test("unauthenticated HTTP requests cannot transition an existing order", async 
     const r = await request.post(path, {
       data: { orderId: receipt.orderId, status: "CANCELLED" },
     });
-    expect([404, 405]).toContain(r.status());
+    expect(
+      path.startsWith("/api/admin/") ? [401, 403, 503] : [404, 405],
+    ).toContain(r.status());
   }
   for (const method of ["put", "patch", "delete"] as const) {
     const r = await request[method]("/api/orders", {

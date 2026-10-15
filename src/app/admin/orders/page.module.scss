@@ -1,0 +1,49 @@
+.notice {
+  padding: 16px;
+  background: #e8efe4;
+  border-radius: 12px;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.card {
+  padding: 20px;
+  background: white;
+  border: 1px solid #9eb4a4;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.card p {
+  margin: 6px 0;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f6dfbc;
+  border-radius: 6px;
+  margin-left: 8px;
+}
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.confirm {
+  padding: 16px;
+  border: 2px solid #ba631d;
+  border-radius: 12px;
+}
+.paging {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
