@@ -1,6 +1,7 @@
 import { test, expect } from "./fixtures";
 import { accessToken } from "../fixtures/access-fixture";
 import { withD1 } from "./db";
+import { localRequestURL } from "../e2e-safety";
 const signed = process.env.E2E_ADMIN_AUTH === "1";
 const buyer = {
   name: "架空の管理ブラウザ購入者",
@@ -247,6 +248,7 @@ test("uncertain admin response reuses operation key; double delivery records onl
   await page.route(
     "**/transition",
     async (route) => {
+      localRequestURL(route.request().url(), new URL(page.url()).origin);
       sent = route.request().postData()!;
       expect((await route.fetch({ maxRedirects: 0 })).status()).toBe(200);
       await route.abort("failed");
