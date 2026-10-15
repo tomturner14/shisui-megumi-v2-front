@@ -1,6 +1,7 @@
 import "server-only";
 import type { D1Database } from "@cloudflare/workers-types";
-import type { CartItem, Quote, Receipt } from "@/types/catalog";
+import type { CartItem, Quote, Receipt, OrderStatus } from "@/types/catalog";
+import { orderDeadline } from "./order-time";
 export class OrderError extends Error {
   constructor(
     public code: string,
@@ -129,12 +130,12 @@ type Existing = {
   id: string;
   request_hash: string;
   total_yen: number;
-  status: string;
+  status: OrderStatus;
 };
 function receipt(order: Existing): Receipt {
   return {
     orderId: order.id,
-    status: "REQUESTED",
+    status: order.status,
     totalYen: order.total_yen,
     currency: "JPY",
   };
@@ -143,6 +144,7 @@ export async function submitOrder(
   db: D1Database,
   input: unknown,
   key: unknown,
+  options: { nowMs?: number; requestTtlMinutes?: number } = {},
 ): Promise<Receipt> {
   const body = record(input);
   fulfillment(body.fulfillment);
@@ -206,14 +208,16 @@ export async function submitOrder(
   const previous = await existing();
   if (previous) return replay(previous);
   // Do not pre-reject insufficient stock here: the batch itself must enforce all-or-nothing.
+  const nowMs = options.nowMs ?? Date.now();
+  const expiresAtMs = orderDeadline(nowMs, options.requestTtlMinutes);
   const id = crypto.randomUUID();
   const statements = [
     db
       .prepare(
         `INSERT INTO orders(id,idempotency_key,request_hash,seller_id,status,fulfillment,
- payment_method,buyer_name,buyer_contact,pickup_conditions,expected_total_yen)
+ payment_method,buyer_name,buyer_contact,pickup_conditions,expected_total_yen,requested_at_ms,expires_at_ms)
  VALUES(?,?,?,?,'REQUESTED','PICKUP','CASH',?,?,
- (SELECT pickup_conditions FROM sellers WHERE id=? AND active=1),?)`,
+ (SELECT pickup_conditions FROM sellers WHERE id=? AND active=1),?,?,?)`,
       )
       .bind(
         id,
@@ -224,6 +228,8 @@ export async function submitOrder(
         contact,
         items[0].sellerId,
         Number(body.expectedTotalYen),
+        nowMs,
+        expiresAtMs,
       ),
   ];
   for (const item of items) {
