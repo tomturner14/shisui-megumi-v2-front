@@ -56,8 +56,14 @@ E2E_RUNTIME=vinext npm run test:e2e
 ブラウザテストは `/usr/bin/chromium` があれば利用します。他の環境では `npx playwright install chromium`、または `CHROMIUM_PATH` で実行ファイルを指定してください。ブラウザ・HTTP APIテストは本物のローカルD1に接続します。
 
 - `test:d1`：一時ディレクトリにWranglerの `--local` migration・seedを実行。D1 bindingの `batch()` を検証し、終了時にテストDBのみ削除します。SQLiteだけの代替テストではありません。
-- `test:e2e`：起動前に専用 `.wrangler/e2e-state` を初期化し、2テストを実行。通常開発用 `.wrangler/state` は変更しません。Next.js開発・本番起動・ビルド済みvinextで同じ試験を実行できます。
-- `E2E_BASE_URL`：既存の**ローカル**サーバーを使う場合のみ指定。初期化・起動を省略するため、指定したサーバーのDBには架空のテスト注文が残ります。公開・本番URLを指定しないでください。
+- `test:e2e`：起動前に専用 `.wrangler/e2e-state` を初期化し、11テストを実行。通常開発用 `.wrangler/state` は変更しません。Next.js開発・本番起動・ビルド済みvinextで同じ試験を実行できます。
+- `E2E_BASE_URL`：`http://localhost`、`http://127.0.0.1`、`http://[::1]` のoriginだけを実行時に許可します。ユーザー情報・パス・query・fragment・HTTPS・公開ホストは拒否。絶対API URLも同じoriginに限定し、リダイレクトを追いません。既存サーバーを使う場合は、専用 `.wrangler/e2e-state` に接続したローカルサーバーを指定してください。初期化・起動は省略します。
 - 完成画面のスクリーンショット：`test-results/products-mobile.png`、`confirm-mobile.png`、`receipt-mobile.png`。Gitには含めません。
 
 設計・実施結果・残る制約は [検証記録](docs/LOCAL_D1_VALIDATION.md) を参照してください。
+
+## PR #1 レビュー対応
+
+最終確認時の明細を固定し、別タブでカートが変わった場合は再確認まで送信を停止します。送信結果不明時は修正・新キーを禁止し、同じ内容・キーで受付結果を確認します。キーと公開見積だけをsessionStorageに保存し、氏名・連絡先は保存しません。再読み込み後は元の氏名・連絡先を再入力します。タブ終了・保存情報消去・別端末の復旧は未対応です。
+
+GitHub Actionsの `Local verification` はlint・型・単体・実ローカルD1・両ビルド・Next.js/WorkerのE2Eを自動実行します。秘密情報・本番DB・デプロイは使用しません。在庫期限/解放、不正申込み対策は引き続き公開前必須です。[レビュー対応と次の実装単位](docs/PR1_REVIEW_RESPONSE.md)を参照してください。

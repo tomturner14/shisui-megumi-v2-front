@@ -17,6 +17,16 @@ function setup() {
       "--file",
       "scripts/seed.sql",
     ],
+    [
+      "d1",
+      "execute",
+      "DB",
+      "--local",
+      "--persist-to",
+      state,
+      "--file",
+      "tests/fixtures/equal-price.sql",
+    ],
   ])
     execFileSync(
       process.execPath,

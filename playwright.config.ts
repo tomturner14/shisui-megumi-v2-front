@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
 import { existsSync } from "node:fs";
-const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+import { localE2EBaseURL } from "./tests/e2e-safety";
+const baseURL = localE2EBaseURL(process.env.E2E_BASE_URL);
 export default defineConfig({
   testDir: "./tests/browser",
   workers: 1,
@@ -8,6 +9,7 @@ export default defineConfig({
   timeout: 30000,
   use: {
     baseURL,
+    serviceWorkers: "block",
     viewport: { width: 390, height: 844 },
     launchOptions: {
       executablePath:

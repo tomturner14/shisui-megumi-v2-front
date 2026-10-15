@@ -7,11 +7,12 @@ import {
   type ReactNode,
 } from "react";
 import { CART_KEY, readCart, addItem, setQuantity } from "@/lib/cart";
+import { sameCart } from "@/lib/checkout";
 import type { CartItem } from "@/types/catalog";
 const EMPTY: CartItem[] = [];
 let cachedRaw: string | null = null,
   cached: CartItem[] = EMPTY;
-function snapshot() {
+export function cartSnapshot() {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(CART_KEY);
@@ -40,11 +41,12 @@ const Context = createContext<{
   add: (i: CartItem) => void;
   quantity: (id: string, n: number) => void;
   clear: () => void;
+  clearIfMatches: (expected: CartItem[]) => void;
   message: string;
   dismiss: () => void;
 } | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
-  const items = useSyncExternalStore(subscribe, snapshot, () => EMPTY);
+  const items = useSyncExternalStore(subscribe, cartSnapshot, () => EMPTY);
   const ready = useSyncExternalStore(
     subscribe,
     () => true,
@@ -71,19 +73,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
         dismiss: () => setMessage(""),
         add: (item) => {
           try {
-            write(addItem(snapshot(), item));
+            write(addItem(cartSnapshot(), item));
           } catch (e) {
             setMessage((e as Error).message);
           }
         },
         quantity: (id, n) => {
           try {
-            write(setQuantity(snapshot(), id, n));
+            write(setQuantity(cartSnapshot(), id, n));
           } catch (e) {
             setMessage((e as Error).message);
           }
         },
         clear: () => write([]),
+        clearIfMatches: (expected) => {
+          if (sameCart(cartSnapshot(), expected)) write([]);
+        },
       }}
     >
       {children}
