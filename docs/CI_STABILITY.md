@@ -24,6 +24,7 @@ WRANGLER_SEND_METRICS=false node scripts/reproduce-local-d1-contention.mjs
 - NextローカルadapterはNodeプロセスのglobal singletonを使い、server bundleや開発reloadをまたぐ追加proxyを避ける。通常のD1 SQL・制約・batch・トリガー・冪等処理は変更しない。ローカル開発でも同じ永続化先へ複数アプリを同時起動しない。
 - ブラウザの `withD1()` はSQLiteを直接開かず、**アプリが所有する同じD1バインディング**へSQLを送る。Nextは明示的なテストpreloadでloopback専用3002ポートを開き、Workerは生成したtest-only entryから `env.DB` を使う。`batch()` はそのままD1の1回のbatchへ転送する。SQL再試行や失敗許容は追加しない。
 - テスト用dispatcherは通常entryに存在しない。Node preload/生成Worker entryはテストコマンドだけで選択する。Workerの通常config/entryは書き換えず、生成ファイルはignore対象。使い捨てランダム鍵（0600、ログ/URLへ出さない）、literal loopback、POST限定、Origin拒否、no-storeを使い、不正要求を拒否する。公開・デプロイ用途に使わない。
+- Next開発モードのsupervisor/CSS評価子プロセスもpreloadを継承するため、テスト用待受はインストール版Nextの実サーバープロセスだけに限定する。初回の開発モード確認でEADDRINUSEを検出し、修正後のHTTP/SQL競合・不正アクセス2件を成功確認した。このsmokeもCIへ追加。
 - 終了時はfixture鍵/生成entryを削除し、Playwrightが所有するアプリ/Workerプロセスを終了する。helperごとのworkerd作成・disposeが不要になる。通常entry検証は `E2E_NORMAL_ENTRY=1` によりpreloadと生成entryの両方を使わない。
 - HTTPの同一申込み12並列再送と、SQL 80更新/80読取りを同時実行し、全HTTP成功・同一注文ID・注文1件・カウンター80・在庫制約を検査する。不正なSQL dispatcherアクセス拒否と、通常entryの404も検査する。既存の不足在庫rollback・状態遷移競合・監査の検査は維持する。
 
@@ -32,7 +33,7 @@ WRANGLER_SEND_METRICS=false node scripts/reproduce-local-d1-contention.mjs
 - branch filterなしの全 `pull_request`。activityは `opened`, `synchronize`, `reopened`, `edited`, `ready_for_review` を明示。`edited` によりbase変更後も再検証する（本文変更でも起動する）。
 - `push` は `main` のみ。feature pushとPRの二重実行を削減する。main pushは将来このworkflowがmainへ統合されてから有効。今回はmainにpush/mergeしていないので実イベントは未検証。
 - `checks`：lint、画像hash、型、認証、単体、実D1を2回。
-- `browser`：Next/Workerを独立runnerのmatrix、fail-fastなし。それぞれビルド、毎回DBをresetした署名E2Eを2回、fixtureなし通常entryで設定不足拒否/SQL経路404を検証。Nextの失敗でWorkerをskipしない。runnerごとのSQLite/生成型を共有しない。
+- `browser`：Next/Workerを独立runnerのmatrix、fail-fastなし。それぞれビルド、毎回DBをresetした署名E2Eを2回、fixtureなし通常entryで設定不足拒否/SQL経路404を検証。Nextの失敗でWorkerをskipしない。runnerごとのSQLite/生成型を共有しない。Next jobでは追加で開発サーバーのD1所有者smoke 2件も検証する。
 - 最終job `verify` は `always()` と `needs` で、全依存jobがsuccessの時だけ成功。将来required checkに設定する際はGitHubに表示された正確な `verify` チェック名を所有者が選ぶ。`contents:read` のみ、deploy/Cloudflare認証/外部DB/秘密情報は使わない。retryは追加しない。
 
 公式資料：[PR activity types](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request)、[branch filters / jobs](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)、[D1ローカル開発](https://developers.cloudflare.com/d1/best-practices/local-development/)。Nextのインストール版の `serverExternalPackages` の公式同梱ドキュメントも確認した。

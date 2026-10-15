@@ -78,6 +78,11 @@ jobs:
         env:
           E2E_NORMAL_ENTRY: "1"
         run: npm run test:e2e -- tests/browser/admin.spec.ts
+      - name: Next development server uses the same single D1 owner
+        if: matrix.runtime == 'next-production'
+        env:
+          E2E_RUNTIME: next-development
+        run: npm run test:e2e -- tests/browser/d1-owner.spec.ts
   verify:
     # Stable required-check name for a future owner-configured main rule.
     # An unsuccessful/skipped dependency must not turn this gate green.
