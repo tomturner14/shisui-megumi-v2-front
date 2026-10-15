@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - name: Verify reviewed public screenshot files and hashes
+        run: node scripts/check-visual-review.mjs
       - run: npm run typecheck
       - run: npm run test:auth
       - run: npm run test:unit

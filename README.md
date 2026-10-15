@@ -80,3 +80,6 @@ npm run orders:expire:local
 ローカルの期限切れ処理を最大10注文まで実行します。状態遷移・全SKUの解放・監査は原子的で、二重解放しません。管理HTTP APIは追加していません。状態表、旧データ移行、取消条件、テスト、将来のCron/完了設計は [注文ライフサイクルの検証記録](docs/ORDER_LIFECYCLE.md) を参照してください。
 
 最小運営管理（認証・監査・ローカル再現・公開前設定）：[docs/OPERATOR_ADMIN.md](docs/OPERATOR_ADMIN.md)
+
+画面の実物確認：[19枚の公開用スクリーンショット](docs/visual-review/README.md)。
+PR #1〜#3の依存関係・UI評価・将来の順次統合手順：[docs/PR_STACK_READINESS.md](docs/PR_STACK_READINESS.md)。現在は全PRをDraftのまま維持し、mainへのマージや本番公開は行っていません。
