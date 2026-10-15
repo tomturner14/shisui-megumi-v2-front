@@ -364,6 +364,16 @@ for (const status of ["REJECTED", "CANCELLED", "EXPIRED"] as const)
         .first<{ n: number }>())!.n;
     const when = status === "EXPIRED" ? order.deadline : order.nowMs + 1,
       op = key();
+    const availabilityBefore = await db
+      .prepare(
+        "SELECT sku_id,on_hand,reserved,on_hand-reserved available FROM inventory WHERE sku_id IN ('carrot-500','rice-2kg') ORDER BY sku_id",
+      )
+      .all<{
+        sku_id: string;
+        on_hand: number;
+        reserved: number;
+        available: number;
+      }>();
     const first = await move(order.orderId, status, when, op);
     assert.equal(first.applied, true);
     const again = await move(order.orderId, status, when + 1, op);
@@ -377,6 +387,19 @@ for (const status of ["REJECTED", "CANCELLED", "EXPIRED"] as const)
         .prepare("SELECT SUM(reserved) n FROM inventory")
         .first<{ n: number }>())!.n,
       before - 4,
+    );
+    const availabilityAfter = await db
+      .prepare(
+        "SELECT sku_id,on_hand,reserved,on_hand-reserved available FROM inventory WHERE sku_id IN ('carrot-500','rice-2kg') ORDER BY sku_id",
+      )
+      .all();
+    assert.deepEqual(
+      availabilityAfter.results,
+      availabilityBefore.results.map((row) => ({
+        ...row,
+        reserved: row.reserved - 2,
+        available: row.available + 2,
+      })),
     );
     for (const r of await reservationStates(order.orderId)) {
       assert.equal(r.status, "RELEASED");
